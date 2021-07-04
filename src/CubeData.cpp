@@ -40,48 +40,9 @@ Cube::Cube()
 	for (int i = 0; i < 6; i++) {
 		for (int j = 0; j < 9; j++) {
 			mesh.push_back({ v[s[i][j][0]], v[s[i][j][2]], v[s[i][j][3]], faceColors[i] });
-			faces[i].push_back(&mesh.back());
 			mesh.push_back({ v[s[i][j][0]], v[s[i][j][3]], v[s[i][j][1]], faceColors[i] });
-			faces[i].push_back(&mesh.back());
 		}
 	}
-
-	for (int i = 0; i < 6; i++) {
-		int right_col = 6 * (i / 2) + i % 2 + 4;
-		int left_col = 6 * (i / 2) + i % 2;
-		int up_row = i;
-		int down_row = 12 + i;
-
-		faces[FRONT].push_back(faces[UP][down_row]);
-		faces[FRONT].push_back(faces[DOWN][up_row]);
-		faces[FRONT].push_back(faces[RIGHT][left_col]);
-		faces[FRONT].push_back(faces[LEFT][right_col]);
-
-		faces[BACK].push_back(faces[UP][up_row]);
-		faces[BACK].push_back(faces[DOWN][down_row]);
-		faces[BACK].push_back(faces[RIGHT][right_col]);
-		faces[BACK].push_back(faces[LEFT][left_col]);
-
-		faces[UP].push_back(faces[FRONT][up_row]);
-		faces[UP].push_back(faces[BACK][up_row]);
-		faces[UP].push_back(faces[RIGHT][up_row]);
-		faces[UP].push_back(faces[LEFT][up_row]);
-
-		faces[DOWN].push_back(faces[FRONT][down_row]);
-		faces[DOWN].push_back(faces[BACK][down_row]);
-		faces[DOWN].push_back(faces[RIGHT][down_row]);
-		faces[DOWN].push_back(faces[LEFT][down_row]);
-
-		faces[RIGHT].push_back(faces[FRONT][right_col]);
-		faces[RIGHT].push_back(faces[BACK][left_col]);
-		faces[RIGHT].push_back(faces[UP][right_col]);
-		faces[RIGHT].push_back(faces[DOWN][right_col]);
-
-		faces[LEFT].push_back(faces[FRONT][left_col]);
-		faces[LEFT].push_back(faces[BACK][right_col]);
-		faces[LEFT].push_back(faces[UP][left_col]);
-		faces[LEFT].push_back(faces[DOWN][left_col]);
-	};
 
 	std::vector<std::vector<int>> e =
 	{
@@ -124,8 +85,20 @@ Cube::Cube()
 			elements.back().push_back(&mesh[e[i][j] * 2 + 1]);
 		}
 	}
+
+	for (int i = 0; i < 9; i++) {
+		faces[FRONT].push_back(elements[i]);
+		faces[UP].push_back(elements[(i / 3) * 9 + i % 3]);
+		faces[RIGHT].push_back(elements[(i + 1) * 3 - 1]);
+		faces[DOWN].push_back(elements[(i / 3) * 9 + i % 3 + 6]);
+		faces[LEFT].push_back(elements[i * 3]);
+		faces[BACK].push_back(elements[i + 18]);
+	}
+}
+
+Cube::~Cube()
+{
 	
-	transform = std::vector<Matrix4x4>(elements.size(), Matrix4x4::Identity());
 }
 
 void Cube::f(int x)
@@ -134,8 +107,26 @@ void Cube::f(int x)
 	float theta = -90 * x;
 
 	for (int i = 0; i < 9; i++) {
-		transform[i] = transform[i] * Matrix4x4::RotationZ(theta);
+		for (int j = 0; j < faces[FRONT][i].size(); j++){
+			*faces[FRONT][i][j] = Matrix4x4::RotationZ(theta) * *faces[FRONT][i][j];
+		}
 	}
+	for (int k = 0; k < x; k++) {
+		std::vector<std::vector<Triangle*>> temp(faces[FRONT].begin(), faces[FRONT].end());
+		for (int i = 0; i < 9; i++)
+		{
+			faces[FRONT][i] = temp[i / 3 + 6 - (i % 3) * 3];
+		}
+
+	}
+
+	// 0 1 2
+	// 3 4 5
+	// 6 7 8
+
+	// 6 3 0
+	// 7 4 1
+	// 8 5 2
 }
 
 void Cube::u(int x)
@@ -144,7 +135,7 @@ void Cube::u(int x)
 	float theta = 90 * x;
 	
 	for (int i = 0; i < 9; i++) {
-		transform[(i / 3) * 9 + i % 3] = transform[(i / 3) * 9 + i % 3] * Matrix4x4::RotationY(theta);
+		faces[UP][i]->transform = faces[UP][i]->transform * Matrix4x4::RotationY(theta);
 	}
 }
 
@@ -154,7 +145,7 @@ void Cube::r(int x)
 	float theta = -90 * x;
 
 	for (int i = 0; i < 9; i++) {
-		transform[(i + 1) * 3 - 1] = transform[(i + 1) * 3 - 1] * Matrix4x4::RotationX(theta);
+		faces[RIGHT][i]->transform = faces[RIGHT][i]->transform * Matrix4x4::RotationX(theta);
 	}
 }
 
@@ -164,7 +155,7 @@ void Cube::d(int x)
 	float theta = -90 * x;
 
 	for (int i = 0; i < 9; i++) {
-		transform[(i / 3) * 9 + i % 3 + 6] = transform[(i / 3) * 9 + i % 3 + 6] * Matrix4x4::RotationY(theta);
+		faces[DOWN][i]->transform = faces[DOWN][i]->transform * Matrix4x4::RotationY(theta);
 	}
 }
 
@@ -174,7 +165,7 @@ void Cube::l(int x)
 	float theta = 90 * x;
 
 	for (int i = 0; i < 9; i++) {
-		transform[i*3] = transform[i*3] * Matrix4x4::RotationX(theta);
+		faces[LEFT][i]->transform = faces[LEFT][i]->transform * Matrix4x4::RotationX(theta);
 	}
 }
 
@@ -184,6 +175,6 @@ void Cube::b(int x)
 	float theta = 90 * x;
 
 	for (int i = 0; i < 9; i++) {
-		transform[i + 18] = transform[i + 18] * Matrix4x4::RotationZ(theta);
+		faces[BACK][i]->transform = faces[BACK][i]->transform * Matrix4x4::RotationZ(theta);
 	}
 }

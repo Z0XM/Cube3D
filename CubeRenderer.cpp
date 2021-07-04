@@ -15,7 +15,9 @@ CubeRenderer::CubeRenderer()
 	matProj = Matrix4x4::Projection(-0.1, -100.0f, 45.0f, aspectRatio);
 	matOrtho = Matrix4x4::Orthographic(-10, 10, 10 * aspectRatio, -10 * aspectRatio, -0.1f, -100.0f);
 
-	cube.r(1);
+	cube.f(1);
+	cube.u(1);
+
 
 	running = true;
 }
@@ -44,11 +46,10 @@ void CubeRenderer::update()
 
 		for (int e = 0; e < cube.elements.size(); e++)
 		{
-			for (int k = 0; k < cube.elements[e].size(); k++) {
+			for (int k = 0; k < cube.elements[e]->tri.size(); k++) {
 
-				Triangle tri = *cube.elements[e][k];
-				Triangle triOperated = cube.transform[e] * tri;
-				Triangle triTransformed = matWorld * triOperated;
+				Triangle tri = *cube.elements[e]->tri[k];
+				Triangle triTransformed = matWorld * tri;
 
 				Vector normal = unit(cross(triTransformed[1] - triTransformed[0], triTransformed[2] - triTransformed[0]));
 

@@ -12,12 +12,12 @@ struct Cube {
 	};
 
 	std::deque<Triangle> mesh;
-	std::vector<Triangle*> faces[6];
 
 	std::vector<std::vector<Triangle*>> elements;
-	std::vector<Matrix4x4> transform;
+	std::vector<std::vector<Triangle*>> faces[6];
 
 	Cube();
+	~Cube();
 
 	void f(int x);
 	void u(int x);
