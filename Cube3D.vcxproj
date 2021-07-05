@@ -31,6 +31,9 @@
     <ClInclude Include="src\Utility.hpp" />
     <ClInclude Include="src\Vector.hpp" />
   </ItemGroup>
+  <ItemGroup>
+    <Text Include="data\settings.txt" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
