@@ -114,35 +114,6 @@ Matrix4x4 Matrix4x4::Orthographic(float left, float right, float bottom, float t
 	return mat;
 }
 
-Matrix4x4 Matrix4x4::PointAt(const Vector& pos, const Vector& dir, const Vector& up)
-{
-	Vector right = unit(cross(dir, up));
-	Vector camUp = cross(right, dir);
-
-	Matrix4x4 mat;
-	mat.m[0][0] = right.x; mat.m[0][1] = right.y; mat.m[0][2] = right.z;
-	mat.m[1][0] = camUp.x;    mat.m[1][1] = camUp.y;    mat.m[1][2] = camUp.z;
-	mat.m[2][0] = -dir.x;  mat.m[2][1] = -dir.y;  mat.m[2][2] = -dir.z;
-	mat.m[3][0] = pos.x;   mat.m[3][1] = pos.y;   mat.m[3][2] = pos.z;
-	mat.m[3][3] = 1;
-	
-	return QuickInverse(mat);
-
-}
-
-Matrix4x4 Matrix4x4::QuickInverse(const Matrix4x4& mat) // Only for Rotation/Translation Matrices
-{
-	Matrix4x4 matrix;
-	matrix.m[0][0] = mat.m[0][0]; matrix.m[0][1] = mat.m[1][0]; matrix.m[0][2] = mat.m[2][0]; 
-	matrix.m[1][0] = mat.m[0][1]; matrix.m[1][1] = mat.m[1][1]; matrix.m[1][2] = mat.m[2][1]; 
-	matrix.m[2][0] = mat.m[0][2]; matrix.m[2][1] = mat.m[1][2]; matrix.m[2][2] = mat.m[2][2];
-	matrix.m[3][0] = -(mat.m[3][0] * matrix.m[0][0] + mat.m[3][1] * matrix.m[1][0] + mat.m[3][2] * matrix.m[2][0]);
-	matrix.m[3][1] = -(mat.m[3][0] * matrix.m[0][1] + mat.m[3][1] * matrix.m[1][1] + mat.m[3][2] * matrix.m[2][1]);
-	matrix.m[3][2] = -(mat.m[3][0] * matrix.m[0][2] + mat.m[3][1] * matrix.m[1][2] + mat.m[3][2] * matrix.m[2][2]);
-	matrix.m[3][3] = 1.0f;
-	return matrix;
-}
-
 Vector operator*(const Matrix4x4& mat, const Vector& u)
 {
 	Vector v;
@@ -162,6 +133,16 @@ Triangle operator*(const Matrix4x4& mat, const Triangle& t)
 	return tri;
 }
 
+Rectangle operator*(const Matrix4x4& mat, const Rectangle& r)
+{
+	Rectangle rect;
+	rect[0] = mat * r[0];
+	rect[1] = mat * r[1];
+	rect[2] = mat * r[2];
+	rect[3] = mat * r[3];
+	return rect;
+}
+
 Matrix4x4 operator*(const Matrix4x4& a, const Matrix4x4& b)
 {
 	Matrix4x4 mat;
@@ -171,56 +152,4 @@ Matrix4x4 operator*(const Matrix4x4& a, const Matrix4x4& b)
 			mat.m[i][j] = a.m[i][0] * b.m[0][j] + a.m[i][1] * b.m[1][j] + a.m[i][2] * b.m[2][j] + a.m[i][3] * b.m[3][j];
 
 	return mat;
-}
-
-Vector intersectionPlaneLine(const Vector& p, const Vector& _n, const Vector& a, const Vector& b)
-{
-	Vector n = unit(_n);
-	return a + (b - a) * (dot(p - a, n) / dot(b - a, n));
-}
-
-std::vector<Triangle> clipTriangleAgainstPlane(const Vector& p, const Vector& _n, const Triangle& tri)
-{
-	Vector n = unit(_n);
-
-	auto distance = [&](const Vector& point)
-	{
-		return dot(n, point - p);
-	};
-
-	std::vector<Vector> insidePoints, outsidePoints;
-
-	for (int i = 0; i < 3; i++) {
-		if (distance(tri[i]) >= 0)insidePoints.push_back(tri[i]);
-		else outsidePoints.push_back(tri[i]);
-	}
-
-	if (insidePoints.empty())return {};
-
-	if (insidePoints.size() == 3)return { tri };
-
-	if (insidePoints.size() == 1 && outsidePoints.size() == 2)
-	{
-		Triangle clipped;
-		clipped[0] = insidePoints[0];
-		clipped[1] = intersectionPlaneLine(p, n, insidePoints[0], outsidePoints[0]);
-		clipped[2] = intersectionPlaneLine(p, n, insidePoints[0], outsidePoints[1]);
-		return { clipped };
-	}
-
-	if (insidePoints.size() == 2 && outsidePoints.size() == 1)
-	{
-		std::vector<Triangle> clipped(2, Triangle());
-		clipped[0][0] = insidePoints[0];
-		clipped[0][1] = insidePoints[1];
-		clipped[0][2] = intersectionPlaneLine(p, n, insidePoints[0], outsidePoints[0]);
-
-		clipped[1][0] = insidePoints[1];
-		clipped[1][1] = clipped[0][2];
-		clipped[1][2] = intersectionPlaneLine(p, n, insidePoints[1], outsidePoints[0]);
-
-		return clipped;
-	}
-
-	return {};
 }

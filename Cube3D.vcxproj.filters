@@ -45,7 +45,4 @@
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
-  <ItemGroup>
-    <Text Include="data\settings.txt" />
-  </ItemGroup>
 </Project>
