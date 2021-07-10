@@ -3,12 +3,13 @@
 #include <SFML/Graphics.hpp>
 #include "Utility.hpp"
 #include "Vector.hpp"
+#include "CubeAnimation.hpp"
 #include <vector>
-#include <deque>
+#include <queue>
 #include <unordered_map>
+#include <functional>
 
 class Cube {
-	sf::Vector2f winSize;
 	bool insideOut;
 
 	Matrix4x4 matProj, matWorld;
@@ -17,11 +18,20 @@ class Cube {
 
 	std::unordered_map<char, sf::Color> colorMap;
 	std::vector<std::string> cubeColors;
+	
+	sf::Vector3f viewAngles;
+	CubeAnimation rotationSettings, viewSettings;
 
-	float rotation_value, rotation_target;
-	bool animating;
+	bool following_moves;
+	std::queue<std::string> moves;
 
-	void setup();
+	void initWorldMatrix(const sf::Vector3f& angles);
+	void loadFromFile(const std::string& filename);
+	void setupCubeFromColors();
+	void loadColorsInCube();
+	void setupForRotation(int face, std::vector<int>& v, int n, int dir, int axis);
+	void rotateFaceClockwise(int face, int n);
+	void rotateSidesClockwise(std::vector<int>& v, int n);
 public:
 	enum Face {
 		FRONT, UP, RIGHT, DOWN, LEFT, BACK
@@ -30,9 +40,7 @@ public:
 	Cube();
 	~Cube();
 
-	void create(const sf::Vector2f&);
-
-	void updateMoves();
+	void create(float aspectRatio);
 
 	bool handleKeyEvent(sf::Keyboard::Key key);
 	void update();

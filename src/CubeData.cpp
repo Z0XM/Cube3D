@@ -3,58 +3,78 @@
 #include<sstream>
 
 Cube::Cube()
-{	
-	rotation_value = 0;
-	animating = false;
+{
+	insideOut = false;
+
+	cubeColors = {
+		"ooooooooo",
+		"yyyyyyyyy",
+		"bbbbbbbbb",
+		"wwwwwwwww",
+		"ggggggggg",
+		"rrrrrrrrr"
+	};		
+
+	following_moves = false;
 }
 
 Cube::~Cube()
 {
 }
 
-void Cube::create(const sf::Vector2f& winSize)
+void Cube::loadFromFile(const std::string& filename)
 {
-	this->winSize = winSize;
+	std::ifstream file(filename);
+	std::string line;
 
+	while (!file.eof()) {
+		getline(file, line);
+		std::stringstream ss;
+		ss << line;
+		ss >> line;
+		if (line == "#scramble") {
+			for (int i = 0; i < 6; i++) {
+				getline(file, line);
+				cubeColors[i] = line;
+			}
+		}
+		else if (line == "#solve") {
+			std::string move;
+			while (move != "#end") {
+				file >> move;
+				moves.push(move);
+			}
+		}
+	}
+	file.close();
+}
+
+void Cube::initWorldMatrix(const sf::Vector3f& angles) 
+{
 	matWorld =
-		Matrix4x4::RotationZ(0) *
-		Matrix4x4::RotationY(45) *
-		Matrix4x4::RotationX(30) *
+		Matrix4x4::RotationZ(angles.z) *
+		Matrix4x4::RotationY(angles.y) *
+		Matrix4x4::RotationX(angles.x) *
 		Matrix4x4::Translation(0, 0, -20);
+}
 
-	float aspectRatio = winSize.y / winSize.x;
+void Cube::create(float aspectRatio)
+{
+	viewAngles = { 30,45,0 };
+
+	initWorldMatrix(viewAngles);
+
 	matProj = Matrix4x4::Projection(-0.1, -100, 45, aspectRatio);
 
 	insideOut = 0;
 
-	colorMap = {
-		{'r', sf::Color::Red}, {'b', sf::Color::Blue}, {'g', sf::Color::Green}, {'w', sf::Color::White}, {'y', sf::Color::Yellow}, {'o', sf::Color(255,165,0)}
-	};
-
-	cubeColors = {
-		"rgbwyogbr",
-		"yyyyyyyyy",
-		"ggggggggg",
-		"wwwwwwwww",
-		"bbbbbbbbb",
-		"ooooooooo"
-	};
-
-	setup();
+	setupCubeFromColors();
 }
 
-
-void Cube::updateMoves()
+void Cube::setupCubeFromColors()
 {
-	for (int i = 0; i < 6; i++) {
-		for (int j = 0; j < 9; j++) {
-			mesh[i * 9 + j].color = colorMap[cubeColors[i][j]];
-		}
-	}
-}
+	mesh.clear();
 
-void Cube::setup()
-{
 	std::vector<Vector> v =
 	{
 		{-3, 3, 3}, {-1, 3, 3}, {1, 3, 3}, {3, 3, 3}, //  0  1  2  3 //t 0 2 3, 0 3 1 
@@ -88,6 +108,10 @@ void Cube::setup()
 		{{43,42,47,46}, {42,41,46,45}, {41,40,45,44}, {47,46,51,50}, {46,45,50,49}, {45,44,49,48}, {51,50,55,54}, {50,49,54,53}, {49,48,53,52}}  //back
 	};
 
+	colorMap = {
+		{'r', sf::Color::Red}, {'b', sf::Color::Blue}, {'g', sf::Color::Green}, {'w', sf::Color::White}, {'y', sf::Color::Yellow}, {'o', sf::Color(255,165,0)}
+	};
+
 	for (int i = 0; i < 6; i++) {
 		for (int j = 0; j < 9; j++) {
 			Vector p[4] = { v[s[i][j][0]], v[s[i][j][2]], v[s[i][j][3]], v[s[i][j][1]] };
@@ -96,157 +120,212 @@ void Cube::setup()
 	}
 }
 
-void rotateClockwise(std::string& face, std::vector<char*>& side, int n = 1)
+void Cube::loadColorsInCube()
 {
-	std::vector<char> temp(face.begin(), face.end());
-
-	auto k = [](int i) {return i / 3 + 6 - (i % 3) * 3; };
-
-	for (int i = 0; i < face.size(); i++) {
-		int j = i;
-		switch (n) { case 3:j = k(j); case 2: j = k(j); case 1: j = k(j); }
-		face[i] = temp[j];
-	}
-
-	temp.clear();
-	for (int i = 0; i < 12; i++) {
-		temp.push_back(*side[i]);
-	}
-
-	for (int i = 0; i < 12; i++) {
-		*side[i] = temp[(i + 12 - 3*n) % 12];
+	for (int i = 0; i < 6; i++) {
+		for (int j = 0; j < 9; j++) {
+			mesh[i * 9 + j].color = colorMap[cubeColors[i][j]];
+		}
 	}
 }
 
-void Cube::f(int x)
+void Cube::rotateFaceClockwise(int face, int n = 1)
 {
-	std::vector<char*> side = 
-	{
-		&cubeColors[RIGHT][0], &cubeColors[RIGHT][3], &cubeColors[RIGHT][6],
-		&cubeColors[DOWN][2], &cubeColors[DOWN][1], &cubeColors[DOWN][0],
-		&cubeColors[LEFT][8], &cubeColors[LEFT][5], &cubeColors[LEFT][2],
-		&cubeColors[UP][6], &cubeColors[UP][7], &cubeColors[UP][8]
+	std::string temp(cubeColors[face]);
+	auto k = [](int i) {return i / 3 + 6 - (i % 3) * 3; };
+
+	for (int i = 0; i < 9; i++) {
+		int j = i;
+		switch (n) {
+		case 3:j = k(j); case 2: j = k(j); case 1: j = k(j); 
+		}
+		cubeColors[face][i] = temp[j];
+	}
+}
+
+void Cube::rotateSidesClockwise(std::vector<int>& v, int n)
+{
+	std::string temp;
+
+	for (int i = 0; i < 12; i++) {
+		temp.push_back(cubeColors[v[i] / 10][v[i] % 10]);
+	}
+
+	for (int i = 0; i < 12; i++) {
+		cubeColors[v[i] / 10][v[i] % 10] = temp[(i + 12 - 3 * n) % 12];
+	}
+}
+
+void Cube::setupForRotation(int face, std::vector<int>& v, int n, int dir, int axis)
+{
+	n = n % 4;
+
+	if (face != -1) {
+		for (int i = 0; i < 9; i++)
+			rectanglesToRotateIndices.push_back(face * 10 + i);
+		
+		rotateFaceClockwise(face, n % 4);
+	}
+
+	rotateSidesClockwise(v, n % 4);
+	rectanglesToRotateIndices.insert(rectanglesToRotateIndices.end(), v.begin(), v.end());
+
+	rotationSettings.dir = dir;
+	if (n == 3) {
+		rotationSettings.dir *= -1;
+		n = 1;
+	}
+
+	rotationSettings.setup(5, 90 * n * rotationSettings.dir);
+
+	switch (axis) {
+	case 0: rotationSettings.var = &rotationSettings.angles.x; break;
+	case 1: rotationSettings.var = &rotationSettings.angles.y; break;
+	case 2: rotationSettings.var = &rotationSettings.angles.z; break;
+	}
+
+	rotationSettings.work = [this]() {
+		sf::Vector3f pre = rotationSettings.angles;
+
+		rotationSettings.instant();
+
+		Matrix4x4 rotMat =
+			Matrix4x4::RotationX(rotationSettings.angles.x - pre.x) *
+			Matrix4x4::RotationY(rotationSettings.angles.y - pre.y) *
+			Matrix4x4::RotationZ(rotationSettings.angles.z - pre.z);
+
+		for (auto i : rectanglesToRotateIndices) {
+			i = (i / 10) * 9 + i % 10;
+			sf::Color c = mesh[i].color;
+			mesh[i] = rotMat * mesh[i];
+			mesh[i].color = c;
+		}
 	};
 
-	rotateClockwise(cubeColors[FRONT], side, x % 4);
+	rotationSettings.finish = [this]() {
+		Matrix4x4 rotMat =
+			Matrix4x4::RotationX(-rotationSettings.angles.x) *
+			Matrix4x4::RotationY(-rotationSettings.angles.y) *
+			Matrix4x4::RotationZ(-rotationSettings.angles.z);
+		
+		for (auto i : rectanglesToRotateIndices) {
+			i = (i / 10) * 9 + i % 10;
+			sf::Color c = mesh[i].color;
+			mesh[i] = rotMat * mesh[i];
+			mesh[i].color = c;
+		}
 
+		loadColorsInCube();
+		rectanglesToRotateIndices.clear();
+	};
+}
 
-	rectanglesToRotateIndices = {
+void Cube::f(int n)
+{
+	std::vector<int> v = {
 		16, 17, 18,
 		20, 23, 26,
 		32, 31, 30,
 		48, 45, 42
 	};
-	for (int i = 0; i < 9; i++) {
-		rectanglesToRotateIndices.push_back(FRONT * 10 + i);
-	}
 
-	rotation_target = 90;
+	setupForRotation(FRONT, v, n, -1, 2);
 }
 
-void Cube::u(int x)
+void Cube::u(int n)
 {
-	std::vector<char*> side =
-	{
-		&cubeColors[RIGHT][2], &cubeColors[RIGHT][1], &cubeColors[RIGHT][0],
-		&cubeColors[FRONT][2],& cubeColors[FRONT][1],& cubeColors[FRONT][0],
-		&cubeColors[LEFT][2], &cubeColors[LEFT][1], &cubeColors[LEFT][0],
-		&cubeColors[BACK][2],& cubeColors[BACK][1],& cubeColors[BACK][0]
+	std::vector<int> v = {
+		22, 21, 20,
+		 2,  1,  0,
+		42, 41, 40,
+		52, 51, 50
 	};
 
-	rotateClockwise(cubeColors[UP], side, x % 4);
-
+	setupForRotation(UP, v, n, 1, 1);
 }
 
-void Cube::r(int x)
+void Cube::r(int n)
 {
-	std::vector<char*> side =
-	{
-		&cubeColors[DOWN][8], &cubeColors[DOWN][5], &cubeColors[DOWN][2],
-		&cubeColors[FRONT][8],&cubeColors[FRONT][5],&cubeColors[FRONT][2],
-		&cubeColors[UP][8], &cubeColors[UP][5], &cubeColors[UP][2],
-		&cubeColors[BACK][0],&cubeColors[BACK][3],&cubeColors[BACK][6]
+	std::vector<int> v = {
+		38, 35, 32,
+		 8,  5,  2,
+		18, 15, 12,
+		50, 53, 56
 	};
 
-	rotateClockwise(cubeColors[RIGHT], side, x % 4);
+	setupForRotation(RIGHT, v, n, -1, 0);
 }
 
-void Cube::d(int x)
+void Cube::d(int n)
 {
-	std::vector<char*> side =
-	{
-		&cubeColors[RIGHT][6], &cubeColors[RIGHT][7], &cubeColors[RIGHT][8],
-		&cubeColors[BACK][6],&cubeColors[BACK][7],&cubeColors[BACK][8],
-		&cubeColors[LEFT][6], &cubeColors[LEFT][7], &cubeColors[LEFT][8],
-		&cubeColors[FRONT][6],&cubeColors[FRONT][7],&cubeColors[FRONT][8]
+	std::vector<int> v = {
+		26, 27, 28,
+		56, 57, 58,
+		46, 47, 48,
+		 6,  7,  8
 	};
 
-	rotateClockwise(cubeColors[DOWN], side, x % 4);
+	setupForRotation(DOWN, v, n, -1, 1);
 }
 
-void Cube::l(int x)
+void Cube::l(int n)
 {
-	std::vector<char*> side =
-	{
-		&cubeColors[DOWN][0], &cubeColors[DOWN][3], &cubeColors[DOWN][6],
-		&cubeColors[BACK][8],&cubeColors[BACK][5],&cubeColors[BACK][2],
-		&cubeColors[UP][0], &cubeColors[UP][3], &cubeColors[UP][6],
-		&cubeColors[FRONT][0],&cubeColors[FRONT][3],&cubeColors[FRONT][6]
+	std::vector<int> v = {
+		10, 13, 16,
+		 0,  3,  6,
+		30, 33, 36,
+		58, 55, 52
 	};
 
-	rotateClockwise(cubeColors[LEFT], side, x % 4);
+	setupForRotation(LEFT, v, n, 1, 0);
 }
 
-void Cube::b(int x)
+void Cube::b(int n)
 {
-	std::vector<char*> side =
-	{
-		&cubeColors[RIGHT][8], &cubeColors[RIGHT][5], &cubeColors[RIGHT][2],
-		&cubeColors[UP][2],&cubeColors[UP][1],&cubeColors[UP][0],
-		&cubeColors[LEFT][0], &cubeColors[LEFT][3], &cubeColors[LEFT][6],
-		&cubeColors[DOWN][6],&cubeColors[DOWN][7],&cubeColors[DOWN][8]
+	std::vector<int> v = {
+		36, 37, 38,
+		28, 25, 22,
+		12, 11, 10,
+		40, 43, 46
 	};
 
-	rotateClockwise(cubeColors[BACK], side, x % 4);
+	setupForRotation(BACK, v, n, 1, 2);
 }
 
-void Cube::m(int x)
+void Cube::m(int n)
 {
-	std::vector<char*> side =
-	{
-		&cubeColors[FRONT][7], &cubeColors[FRONT][4], &cubeColors[FRONT][1],
-		&cubeColors[UP][7],&cubeColors[UP][4],&cubeColors[UP][1],
-		&cubeColors[BACK][1], &cubeColors[BACK][4], &cubeColors[BACK][7],
-		&cubeColors[DOWN][7],&cubeColors[DOWN][4],&cubeColors[DOWN][1]
+	std::vector<int> v = {
+		 7,  4,  1,
+		17, 14, 11,
+		57, 54, 51,
+		37, 34, 31
 	};
-	std::string face = "";
-	rotateClockwise(face, side, x % 4);
+
+	setupForRotation(-1, v, n, -1, 0);
 }
 
-void Cube::s(int x)
+void Cube::s(int n)
 {
-	std::vector<char*> side =
-	{
-		&cubeColors[FRONT][5], &cubeColors[FRONT][4], &cubeColors[FRONT][3],
-		&cubeColors[LEFT][5],&cubeColors[LEFT][4],&cubeColors[LEFT][3],
-		&cubeColors[BACK][5], &cubeColors[BACK][4], &cubeColors[BACK][3],
-		&cubeColors[RIGHT][5],&cubeColors[RIGHT][4],&cubeColors[RIGHT][3]
+	std::vector<int> v = {
+		 5,  4,  3,
+		45, 44, 43,
+		55, 54, 53,
+		25, 24, 23
 	};
-	std::string face = "";
-	rotateClockwise(face, side, x % 4);
+
+	setupForRotation(-1, v, n, 1, 1);
 }
 
-void Cube::e(int x)
+void Cube::e(int n)
 {
-	std::vector<char*> side =
-	{
-		&cubeColors[RIGHT][1], &cubeColors[RIGHT][4], &cubeColors[RIGHT][7],
-		&cubeColors[DOWN][5], &cubeColors[DOWN][4], &cubeColors[DOWN][3],
-		&cubeColors[LEFT][7], &cubeColors[LEFT][4], &cubeColors[LEFT][1],
-		&cubeColors[UP][3], &cubeColors[UP][4], &cubeColors[UP][5]
+	std::vector<int> v = {
+		21, 24, 27,
+		35, 34, 33,
+		47, 44, 41,
+		13, 14, 15
 	};
-	std::string face = "";
-	rotateClockwise(face, side, x % 4);
+
+	setupForRotation(-1, v, n, -1, 2);
 }
 
 void Cube::turn_left()
@@ -271,47 +350,108 @@ void Cube::turn_down()
 
 bool Cube::handleKeyEvent(sf::Keyboard::Key key)
 {
-	if (animating)return false;
+	if (key == sf::Keyboard::Q) {
+		loadFromFile("data/scramble.txt");
+		setupCubeFromColors();
+		return true;
+	}
 
-	if (key == sf::Keyboard::I)insideOut = !insideOut;
-	else if (key == sf::Keyboard::R)r(1);
-	else if (key == sf::Keyboard::U)u(1);
-	else if (key == sf::Keyboard::F)f(1);
-	else if (key == sf::Keyboard::L)l(1);
-	else if (key == sf::Keyboard::D)d(1);
-	else if (key == sf::Keyboard::B)b(1);
-	else if (key == sf::Keyboard::M)m(1);
-	else if (key == sf::Keyboard::S)s(1);
-	else if (key == sf::Keyboard::E)e(1);
+	if (!viewSettings.animating && (key >= sf::Keyboard::Numpad4 && key <= sf::Keyboard::Numpad6)) {
+		if (key == sf::Keyboard::Numpad4) viewSettings.dir = 1;
+		else if (key == sf::Keyboard::Numpad6) viewSettings.dir = -1;
+		float rval = 90;
+
+		if (key == sf::Keyboard::Numpad5) {
+			viewSettings.dir *= -1;
+			rval = 45;
+		}
+
+		viewSettings.setup(5, viewAngles.y + rval * viewSettings.dir, &viewAngles.y);
+
+		viewSettings.work = [this]() {
+			viewSettings.instant();
+			initWorldMatrix(viewAngles);
+		};
+
+		return true;
+	}
+
+	if (viewSettings.var != &viewAngles.y && (key == sf::Keyboard::Numpad8 || key == sf::Keyboard::Numpad2)){
+		if (key == sf::Keyboard::Numpad2) viewSettings.dir = -1;
+		else if (key == sf::Keyboard::Numpad8) viewSettings.dir = 1;
+
+		viewSettings.setup(5, 30 * viewSettings.dir, &viewAngles.x);
+
+		viewSettings.work = [this]() {
+			viewSettings.instant();
+			initWorldMatrix(viewAngles);
+		};
+
+		return true;
+	}
+
+	if (key == sf::Keyboard::Enter) {
+		following_moves = !following_moves;
+		return true;
+	}
+	if (key == sf::Keyboard::I) {
+		insideOut = !insideOut;
+		return true;
+	}
+	
+	if (following_moves)return false;
+
+	if (rotationSettings.animating)return false;
+
+	int n = 1;
+	if (sf::Keyboard::isKeyPressed(sf::Keyboard::LShift))n = 3;
+	else if(sf::Keyboard::isKeyPressed(sf::Keyboard::RShift))n = 2;
+
+	if (key == sf::Keyboard::R)r(n);
+	else if (key == sf::Keyboard::U)u(n);
+	else if (key == sf::Keyboard::F)f(n);
+	else if (key == sf::Keyboard::L)l(n);
+	else if (key == sf::Keyboard::D)d(n);
+	else if (key == sf::Keyboard::B)b(n);
+	else if (key == sf::Keyboard::M)m(n);
+	else if (key == sf::Keyboard::S)s(n);
+	else if (key == sf::Keyboard::E)e(n);
 	else if (key == sf::Keyboard::Right)turn_right();
 	else if (key == sf::Keyboard::Left)turn_left();
 	else if (key == sf::Keyboard::Up)turn_up();
 	else if (key == sf::Keyboard::Down)turn_down();
 	else return false;
-
-	animating = true;
 	return true;
 }
 
-void Cube::update() 
+void Cube::update()
 {
-	if (animating) {
-		rotation_value++;
+	if (!rotationSettings.animating && following_moves && !moves.empty()) {
+		std::string move = moves.front();
+		moves.pop();
 
-		for (auto i : rectanglesToRotateIndices) {
-			i = (i / 10) * 9 + i % 10;
-			mesh[i].vertex[0] = Matrix4x4::RotationZ(1) * mesh[i].vertex[0];
-			mesh[i].vertex[1] = Matrix4x4::RotationZ(1) * mesh[i].vertex[1];
-			mesh[i].vertex[2] = Matrix4x4::RotationZ(1) * mesh[i].vertex[2];
-			mesh[i].vertex[3] = Matrix4x4::RotationZ(1) * mesh[i].vertex[3];
+		int n = 1;
+		if (move.size() == 2) {
+			if (move[1] == '!')n = 3;
+			else if (move[1] == '2')n = 2;
 		}
 
-		if (rotation_value >= rotation_target) {
-			animating = false;
-			rotation_value = 0;
-			rectanglesToRotateIndices.clear();
+		switch (move[0]) {
+		case 'r': r(n); break;
+		case 'f': f(n); break;
+		case 'u': u(n); break;
+		case 'l': l(n); break;
+		case 'b': b(n); break;
+		case 'd': d(n); break;
+		case 's': s(n); break;
+		case 'm': m(n); break;
+		case 'e': e(n); break;
 		}
 	}
+
+	if (rotationSettings.animating)rotationSettings.animate();
+
+	if (viewSettings.animating)viewSettings.animate();
 }
 
 void Cube::render(sf::RenderWindow& window)
@@ -329,18 +469,17 @@ void Cube::render(sf::RenderWindow& window)
 
 			rectProjected = matProj * rectTransformed;
 
-			auto offsetPoint = [this](Vector& p) {
+			sf::Vector2f winSize(window.getSize().x, window.getSize().y);
+			auto offsetPoint = [this, &winSize](Vector& p) {
 				p = p / p.w;
 				p.y *= -1;
-				p = p + Vector{ 1, 1, 0 };
+				p = p + Vector{ 0.5, 1, 0 };
 				p.x *= 0.5f * winSize.x;
 				p.y *= 0.5f * winSize.y;
 			};
 
-			offsetPoint(rectProjected[0]);
-			offsetPoint(rectProjected[1]);
-			offsetPoint(rectProjected[2]);
-			offsetPoint(rectProjected[3]);
+			for(int j = 0; j < 4; j++)
+				offsetPoint(rectProjected[j]);
 
 			rectProjected.color = sf::Color(rect.color.r, rect.color.g, rect.color.b);
 

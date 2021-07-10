@@ -114,6 +114,18 @@ Matrix4x4 Matrix4x4::Orthographic(float left, float right, float bottom, float t
 	return mat;
 }
 
+Matrix4x4 operator+(const Matrix4x4& a, const Matrix4x4& b)
+{
+	Matrix4x4 mat;
+	for (int i = 0; i < 4; i++) {
+		for (int j = 0; j < 4; j++) {
+			mat.m[i][j] = a.m[i][j] + b.m[i][j];
+		}
+	}
+
+	return mat;
+}
+
 Vector operator*(const Matrix4x4& mat, const Vector& u)
 {
 	Vector v;

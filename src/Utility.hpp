@@ -42,6 +42,8 @@ struct Matrix4x4 {
 	static Matrix4x4 Orthographic(float left, float right, float bottom, float top, float near, float far);
 };
 
+Matrix4x4 operator+(const Matrix4x4& a, const Matrix4x4& b);
+
 Vector operator*(const Matrix4x4& mat, const Vector& u);
 Triangle operator*(const Matrix4x4& mat, const Triangle& t);
 Rectangle operator*(const Matrix4x4& mat, const Rectangle& r);

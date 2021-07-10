@@ -1,0 +1,16 @@
+
+#scramble
+ryrrogroy
+rbbwyoybw
+byoybgogo
+gbgywowbb
+yrboggorw
+wwgwrwyrg
+#end
+
+#solve
+b l b! l r! u l! u2 l! f2 r2 u b2 u2 l2 f! u! f r u! r! u2 
+f! u2 f u2 f! u f r! u2 r u2 r! u! r u l! u! l2 u l2 u! l u! 
+l! u l u! f u2 r u! r! f! u f r u r! u! f! u! r u r! u r u2 r2 
+f r! b2 r f! r! b2 r2 u r! f r! b2 r f! r! b2 r! u! r u r u r u! r! u! r2 u2
+#end

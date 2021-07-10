@@ -16,7 +16,7 @@ CubeRenderer::CubeRenderer()
 {
 	this->InitWindow();
 
-	this->cube.create(this->getWinSize());
+	this->cube.create(this->getWinSize().y / this->getWinSize().x);
 
 	running = true;
 	paused = false;

@@ -21,15 +21,30 @@
   <ItemGroup>
     <ClCompile Include="CubeRenderer.cpp" />
     <ClCompile Include="main.cpp" />
+    <ClCompile Include="src\CubeAnimation.cpp" />
     <ClCompile Include="src\CubeData.cpp" />
+    <ClCompile Include="src\GUI\Button.cpp" />
+    <ClCompile Include="src\GUI\Clickable.cpp" />
+    <ClCompile Include="src\GUI\Dropitem.cpp" />
+    <ClCompile Include="src\GUI\GUI.cpp" />
+    <ClCompile Include="src\GUI\Textbox.cpp" />
     <ClCompile Include="src\Utility.cpp" />
     <ClCompile Include="src\Vector.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CubeRenderer.hpp" />
+    <ClInclude Include="src\CubeAnimation.hpp" />
     <ClInclude Include="src\CubeData.hpp" />
+    <ClInclude Include="src\GUI.hpp" />
+    <ClInclude Include="src\GUI\Button.hpp" />
+    <ClInclude Include="src\GUI\Clickable.hpp" />
+    <ClInclude Include="src\GUI\Dropitem.hpp" />
+    <ClInclude Include="src\GUI\Textbox.hpp" />
     <ClInclude Include="src\Utility.hpp" />
     <ClInclude Include="src\Vector.hpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="data\scramble.txt" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
