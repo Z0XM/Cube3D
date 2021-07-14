@@ -28,8 +28,7 @@ enum ELement {
 	C1, E1, C2, E2, O, E3, C3, E4, C4
 };
 
-vector<string> cube(6), moves[6];
-int index;
+vector<string> cube(6), moves;
 
 bool fill_moves = true;
 
@@ -42,79 +41,56 @@ void edge_pll();
 
 queue<string> generateAlgorithm(vector<string> cc)
 {
-	for (index = 0; index < 6; index++) {
-		moves[index].clear();
-		cube = cc;
+	cube = cc;
+	moves.clear();
 
-		if (index == 1) {
-			turn_down();
-		}
-		else if (index == 2) {
-			turn_down(); turn_down();
-		}
-		else if (index == 3) {
-			turn_up();
-		}
-		else if (index == 4) {
-			turn_left(); turn_down();
+	/////////////////////////////////////////////////////////////////////////////////////////
+
+	if (cube[DOWN][E1] != cube[DOWN][O] || cube[DOWN][E2] != cube[DOWN][O] || cube[DOWN][E3] != cube[DOWN][O] || cube[DOWN][E4] != cube[DOWN][O])
+		cross();
+
+	while (cube[FRONT][O] != cube[FRONT][E4])d(1);
+
+	f2l();
+
+	if (cube[UP][E1] != cube[UP][O] || cube[UP][E2] != cube[UP][O] || cube[UP][E3] != cube[UP][O] || cube[UP][E4] != cube[UP][O])
+		upcross();
+
+	oll();
+
+	if (cube[FRONT][C1] != cube[FRONT][C2] || cube[BACK][C1] != cube[BACK][C2])
+		corner_pll();
+		
+
+	if (cube[FRONT][C1] != cube[FRONT][E1] || cube[BACK][C1] != cube[BACK][E1])
+		edge_pll();
+
+	while (cube[FRONT][C1] != cube[FRONT][O])u(1);
+
+	////////////////////////////////////////////////////////////////////////////////////////
+
+	int N = moves.size();
+	for (int i = 0; i < N - 1; i++, N = moves.size()) {
+		if (i < 0)continue;
+		if (moves[i][0] != moves[i + 1][0])continue;
+		int n1 = moves[i][1] - '0', n2 = moves[i + 1][1] - '0';
+		if (n1 + n2 == 4) {
+			moves.erase(moves.begin() + i, moves.begin() + (i + 2));
+			i -= 1;
 		}
 		else {
-			turn_right(); turn_down();
+			moves.erase(moves.begin() + (i + 1));
+			moves[i][1] = (n1 + n2) % 4 + '0';
+			i -= 1;
 		}
-
-		/////////////////////////////////////////////////////////////////////////////////////////
-
-		if (cube[DOWN][E1] != cube[DOWN][O] || cube[DOWN][E2] != cube[DOWN][O] || cube[DOWN][E3] != cube[DOWN][O] || cube[DOWN][E4] != cube[DOWN][O])
-			cross();
-
-		while (cube[FRONT][O] != cube[FRONT][E4])d(1);
-
-		f2l();
-
-		if (cube[UP][E1] != cube[UP][O] || cube[UP][E2] != cube[UP][O] || cube[UP][E3] != cube[UP][O] || cube[UP][E4] != cube[UP][O])
-			upcross();
-
-		oll();
-
-		if (cube[FRONT][C1] != cube[FRONT][C2] || cube[BACK][C1] != cube[BACK][C2])
-			corner_pll();
-
-		if (cube[FRONT][C1] != cube[FRONT][E1] || cube[BACK][C1] != cube[BACK][E1])
-			edge_pll();
-
-		while (cube[FRONT][C1] != cube[FRONT][O])u(1);
-
-		////////////////////////////////////////////////////////////////////////////////////////
-
-		int N = moves[index].size();
-		for (int i = 0; i < N - 1; i++, N = moves[index].size()) {
-			if (i < 0)continue;
-			if (moves[index][i][0] != moves[index][i + 1][0])continue;
-			int n1 = moves[index][i][1] - '0', n2 = moves[index][i + 1][1] - '0';
-			if (n1 + n2 == 4) {
-				moves[index].erase(moves[index].begin() + i, moves[index].begin() + (i + 2));
-				i -= 1;
-			}
-			else {
-				moves[index].erase(moves[index].begin() + (i + 1));
-				moves[index][i][1] = (n1 + n2) % 4 + '0';
-				i -= 1;
-			}
-			if (i >= 0 && i + 1 < moves[index].size() && moves[index][i][0] == moves[index][i + 1][0]) {
-				i -= 1;
-			}
+		if (i >= 0 && i + 1 < moves.size() && moves[i][0] == moves[i + 1][0]) {
+			i -= 1;
 		}
-	}
-
-	int min = 0;
-
-	for (int i = 1; i < 6; i++) {
-		if (moves[i].size() < moves[min].size())min = i;
 	}
 
 	queue<string> algo;
-	for (int i = 0; i < moves[min].size(); i++) {
-		algo.push(moves[min][i]);
+	for (int i = 0; i < moves.size(); i++) {
+		algo.push(moves[i]);
 	}
 	return algo;
 }
@@ -490,7 +466,7 @@ void setupForRotation(int face, std::vector<int>& v, int n)
 		case -3:move = "e"; break;
 		}
 		move += char(n + 48);
-		moves[index].push_back(move);
+		moves.push_back(move);
 	}
 }
 
@@ -604,40 +580,40 @@ void e(int n)
 void turn_left()
 {
 	if (fill_moves) {
-		moves[index].push_back("y1");
+		moves.push_back("y1");
 		fill_moves = false;
 	}
 	u(1); s(1); d(3);
 
-	if (!moves[index].empty() && moves[index].back() == "y1")fill_moves = true;
+	if (!moves.empty() && moves.back() == "y1")fill_moves = true;
 }
 
 void turn_right()
 {
 	if (fill_moves) {
-		moves[index].push_back("y3");
+		moves.push_back("y3");
 		fill_moves = false;
 	}
 	u(3); s(3); d(1);
-	if (!moves[index].empty() && moves[index].back() == "y3")fill_moves = true;
+	if (!moves.empty() && moves.back() == "y3")fill_moves = true;
 }
 
 void turn_up()
 {
 	if (fill_moves) {
-		moves[index].push_back("x1");
+		moves.push_back("x1");
 		fill_moves = false;
 	}
 	r(1); m(1); l(3);
-	if (!moves[index].empty() && moves[index].back() == "x1")fill_moves = true;
+	if (!moves.empty() && moves.back() == "x1")fill_moves = true;
 }
 
 void turn_down()
 {
 	if (fill_moves) {
-		moves[index].push_back("x3");
+		moves.push_back("x3");
 		fill_moves = false;
 	}
 	r(3); m(3); l(1);
-	if (!moves[index].empty() && moves[index].back() == "x3")fill_moves = true;
+	if (!moves.empty() && moves.back() == "x3")fill_moves = true;
 }
