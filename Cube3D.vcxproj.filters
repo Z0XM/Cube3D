@@ -36,16 +36,13 @@
     <ClCompile Include="src\GUI\Button.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="src\GUI\Clickable.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="src\GUI\Dropitem.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="src\GUI\GUI.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="src\GUI\Textbox.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\CubeAlgorithm.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
@@ -74,14 +71,20 @@
     <ClInclude Include="src\GUI\Clickable.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\GUI\Dropitem.hpp">
+    <ClInclude Include="src\GUI\Textbox.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="src\GUI\Textbox.hpp">
+    <ClInclude Include="src\CubeAlgorithm.hpp">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <Text Include="data\scramble.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Font Include="data\Braydon Script.ttf" />
+    <Font Include="data\Amel Brush Font.ttf" />
+    <Font Include="data\consola.ttf" />
+    <Font Include="data\Cream Peach.ttf" />
   </ItemGroup>
 </Project>

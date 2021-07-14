@@ -145,9 +145,9 @@ Triangle operator*(const Matrix4x4& mat, const Triangle& t)
 	return tri;
 }
 
-Rectangle operator*(const Matrix4x4& mat, const Rectangle& r)
+Quad operator*(const Matrix4x4& mat, const Quad& r)
 {
-	Rectangle rect;
+	Quad rect;
 	rect[0] = mat * r[0];
 	rect[1] = mat * r[1];
 	rect[2] = mat * r[2];
@@ -164,4 +164,15 @@ Matrix4x4 operator*(const Matrix4x4& a, const Matrix4x4& b)
 			mat.m[i][j] = a.m[i][0] * b.m[0][j] + a.m[i][1] * b.m[1][j] + a.m[i][2] * b.m[2][j] + a.m[i][3] * b.m[3][j];
 
 	return mat;
+}
+
+bool Quad::contains(const sf::Vector2f& pos)
+{
+	for (int i = 0; i < 4; i++) {
+		float val = (pos.y - vertex[i].y)* (vertex[(i + 1) % 4].x - vertex[i].x) - (pos.x - vertex[i].x) * (vertex[(i + 1) % 4].y - vertex[i].y);
+
+		if (val > 0)return false;
+	}
+
+	return true;
 }

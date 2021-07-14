@@ -1,12 +1,13 @@
 #include "../GUI.hpp"
 #include <iostream>
+#include <unordered_map>
 namespace gui {
 
 	template <typename T>
-	void renderGroup(std::map<std::string, T*>& map, sf::RenderTarget& renderTarget)
+	void renderGroup(std::unordered_map<std::string, T*>& map, sf::RenderTarget& renderTarget)
 	{
 		for (auto it = map.begin(); it != map.end(); it++) {
-			it->second->render(renderTarget);
+			it->second->draw(renderTarget);
 		}
 	}
 
@@ -14,12 +15,10 @@ namespace gui {
 	{
 		renderGroup(Textbox::Group, renderTarget);
 		renderGroup(Button::Group, renderTarget);
-		renderGroup(Dropitem::Group, renderTarget);
-		renderGroup(Scroll::Group, renderTarget);
 	}
 
 	template <typename T>
-	void deleteGroup(std::map<std::string, T*>& map)
+	void deleteGroup(std::unordered_map<std::string, T*>& map)
 	{
 		for (auto it = map.begin(); it != map.end(); it++) {
 			delete it->second;
@@ -31,53 +30,47 @@ namespace gui {
 	{
 		deleteGroup(Textbox::Group);
 		deleteGroup(Button::Group);
-		deleteGroup(Dropitem::Group);
-		deleteGroup(Scroll::Group);
 	}
 
 	template<typename T>
-	Clickable* searchForPointedButtonIn(std::map<std::string, T*>& map, sf::Vector2f& mousePos)
+	gui::Button* searchForPointedButtonIn(std::unordered_map<std::string, T*>& map, const sf::Vector2f& mousePos)
 	{
-		for (auto it = map.begin(); it != map.end(); it++){
-			Clickable* clickable = it->second->isHit(mousePos);
-			if (clickable != nullptr)return clickable;
+		for (auto it = map.begin(); it != map.end(); it++) {
+			if (it->second->contains(mousePos))
+				return it->second;
 		}
 		return nullptr;
 	}
 
-	void updateMousePointer(sf::Vector2f&& mousePos)
+	void updateMousePointer(const sf::Vector2f& mousePos)
 	{
-		if (Clickable::mouseHoveringOn == nullptr || Clickable::mouseHoveringOn != Clickable::mouseHoveringOn->isHit(mousePos)) {
-			
-			Clickable* currentMouseHoveringOn = nullptr;
+		if (Button::mouseHoveringOn == nullptr || !Button::mouseHoveringOn->contains(mousePos)) {
+
+			Button* currentMouseHoveringOn = nullptr;
 
 			currentMouseHoveringOn = searchForPointedButtonIn(Button::Group, mousePos);
-			if (currentMouseHoveringOn == nullptr)
-				currentMouseHoveringOn = searchForPointedButtonIn(Dropitem::Group, mousePos);
-			if (currentMouseHoveringOn == nullptr)
-				currentMouseHoveringOn = searchForPointedButtonIn(Scroll::Group, mousePos);
 
-			if (Clickable::mouseHoveringOn != currentMouseHoveringOn)
+			if (Button::mouseHoveringOn != currentMouseHoveringOn)
 			{
-				if (Clickable::mouseHoveringOn != nullptr)Clickable::mouseHoveringOn->deactivateHighlight();
-				Clickable::mouseHoveringOn = currentMouseHoveringOn;
-				if (Clickable::mouseHoveringOn != nullptr)Clickable::mouseHoveringOn->activateHighlight();
+				if (Button::mouseHoveringOn != nullptr)Button::mouseHoveringOn->deactivateHighlight();
+				Button::mouseHoveringOn = currentMouseHoveringOn;
+				if (Button::mouseHoveringOn != nullptr)Button::mouseHoveringOn->activateHighlight();
 			}
 		}
 	}
 
 	void registerClick(sf::Mouse::Button button)
 	{
-		Clickable::clicked = Clickable::mouseHoveringOn;
-		Clickable::pressedMouseButton = button;
+		Button::clicked = Button::mouseHoveringOn;
+		Button::pressedMouseButton = button;
 	}
 
-	void unregisterClick(sf::Mouse::Button button, sf::Vector2f mousePos)
+	void unregisterClick(sf::Mouse::Button button, const sf::Vector2f& mousePos)
 	{
-		if (Clickable::clicked != nullptr && Clickable::clicked == Clickable::mouseHoveringOn && button == Clickable::pressedMouseButton)
+		if (Button::clicked != nullptr && Button::clicked == Button::mouseHoveringOn && button == Button::pressedMouseButton)
 		{
-			Clickable::clicked->action();
+			if(Button::clicked->action != nullptr)Button::clicked->action();
 		}
-		Clickable::clicked = nullptr;
+		Button::clicked = nullptr;
 	}
 }

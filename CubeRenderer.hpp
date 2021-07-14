@@ -8,10 +8,13 @@ private:
 	sf::RenderWindow window;
 	bool running;
 	bool paused;
+
+	sf::Font mainFont, subFont;
 	
 	Cube cube;
 
-	void InitWindow();
+	void initWindow();
+	void initButtons();
 public:
 	CubeRenderer();
 	~CubeRenderer();

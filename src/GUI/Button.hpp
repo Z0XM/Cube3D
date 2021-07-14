@@ -1,35 +1,38 @@
 #pragma once
 
 #include "Textbox.hpp"
-#include "Clickable.hpp"
-#include "guiEntry.hpp"
-#include <map>
+#include <functional>
 
 namespace gui {
-	class Button : public Textbox, public Clickable{
-	private:
-		struct {
-			sf::Color backgroundColor;
-			sf::Color outlineColor;
-			float outlineThickness;
-			sf::Color textFillColor;
-		} original, highlight;
-
-		void InitVariables();
-		void updateHighlight();
+	class Button : public Textbox {
 	public:
-		Button();
-		Button(sf::RectangleShape, sf::Text);
+		Button(const sf::Vector2f& siz = sf::Vector2f(0, 0));
 		~Button();
 
-		void setPosition(const sf::Vector2f&&);
-		void move(float, float);
-		void setHighlight(sf::Color, sf::Color, float, sf::Color);
-		void changeHighlightOutline(sf::Color, float);
-		void changeHighlightBackgroundAndText(sf::Color, sf::Color);
-		void updateTheme();
-		Clickable* isHit(sf::Vector2f& mousePos);
+		void setHighlightFillColor(const sf::Color& color);
+		void setHighightOutlineColor(const sf::Color& color);
+		void setHighlightOutlineThickness(float thickness);
 
-		static std::map<std::string, Button*> Group;
+		bool contains(const sf::Vector2f& mousePos) const;
+
+		void setAction(std::function<void()> func);
+		void activateHighlight();
+		void deactivateHighlight();
+
+		void copyHighlightProperties(const sf::RectangleShape& rect);
+
+		void draw(sf::RenderTarget& target) override;
+
+		std::function<void()> action;
+		static Button* mouseHoveringOn;
+		static sf::Mouse::Button pressedMouseButton;
+		static Button* clicked;
+
+		static Button* create(const sf::Vector2f& size);
+		static std::unordered_map<std::string, Button*> Group;
+
+	private:
+		sf::RectangleShape highlight;
+		enum { HIGHLIGHT, ORIGINAL } state;
 	};
 }

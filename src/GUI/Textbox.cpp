@@ -1,139 +1,221 @@
 #include "Textbox.hpp"
 
 namespace gui {
-	std::map<std::string, Textbox*> Textbox::Group;
 
-	Textbox::Textbox()
-	{
-		this->InitVariables(sf::RectangleShape(), sf::Text(), false);
-	}
+	std::unordered_map<std::string, Textbox*> Textbox::Group;
 
-	Textbox::Textbox(sf::RectangleShape box, sf::Text text, bool setStringAsDefault)
+	Textbox::Textbox(const sf::Vector2f& size)
+		:hasText(true), alignment(TextAlign::CENTER)
 	{
-		this->InitVariables(box, text, setStringAsDefault);
-		this->setBackgroundColor(sf::Color::Black);
-		this->setOutlineColor(sf::Color::White);
-		this->setOutlineThickness(2);
-		this->setTextFillColor(sf::Color::White);
+		this->setSize(size);
 	}
 
 	Textbox::~Textbox()
 	{
-		
+
 	}
 
-	void Textbox::InitVariables(sf::RectangleShape box, sf::Text text, bool setStringAsDefault)
+	void Textbox::updateText()
 	{
-		this->box = box;
-		this->text = text;
-		this->defaultString = setStringAsDefault ? text.getString() : "";
+		text.setPosition(
+			box.getPosition().x + (box.getSize().x - text.getGlobalBounds().width) * 0.5f * (int)alignment,
+			box.getPosition().y + box.getSize().y * 0.5f - text.getGlobalBounds().height
+		);
 	}
 
-	void Textbox::move(float x, float y)
+	void Textbox::setSize(const sf::Vector2f& size)
 	{
-		this->setPosition(this->getPosition() + sf::Vector2f(x, y));
+		box.setSize(size);
 	}
 
-	void Textbox::setPosition(const sf::Vector2f& position)
+	const sf::Vector2f& Textbox::getSize() const
 	{
-		this->box.setPosition(position);
-		this->alignText();
+		return box.getSize();
 	}
 
-	sf::Vector2f Textbox::getPosition() const
+	void Textbox::setFillColor(const sf::Color& color)
 	{
-		return this->box.getPosition();
-	}
-
-	sf::Color Textbox::getBackgroundColor() const
-	{
-		return this->box.getFillColor();
-	}
-
-	sf::Color Textbox::getOutlineColor() const
-	{
-		return this->box.getOutlineColor();
-	}
-
-	float Textbox::getOutlineThickness() const
-	{
-		return this->box.getOutlineThickness();
-	}
-
-	sf::Color Textbox::getTextFillColor() const
-	{
-		return this->text.getFillColor();
-	}
-
-	void Textbox::alignText(const Textbox::TextAlign alignment)
-	{
-		switch(alignment)
-		{
-		case TextAlign::CENTER :
-			this->text.setOrigin(this->text.getLocalBounds().width / 2, this->text.getLocalBounds().height);
-			this->text.setPosition(this->box.getPosition().x + this->box.getLocalBounds().width / 2, this->box.getPosition().y + this->box.getLocalBounds().height / 2);
-			break;
-
-		case TextAlign::LEFT :
-			this->text.setOrigin(this->text.getLocalBounds().left, this->text.getLocalBounds().height);
-			this->text.setPosition(this->box.getPosition().x + this->box.getLocalBounds().width / 2, this->box.getPosition().y + this->box.getLocalBounds().height / 2);
-			break;
-
-		case TextAlign::RIGHT :
-			this->text.setOrigin(this->text.getLocalBounds().width, this->text.getLocalBounds().height);
-			this->text.setPosition(this->box.getPosition().x + this->box.getLocalBounds().width / 2, this->box.getPosition().y + this->box.getLocalBounds().height / 2);
-			break;
-		}
-	}
-
-	void Textbox::setBackgroundColor(const sf::Color& color)
-	{
-		this->box.setFillColor(color);
+		box.setFillColor(color);
 	}
 
 	void Textbox::setOutlineColor(const sf::Color& color)
 	{
-		this->box.setOutlineColor(color);
+		box.setOutlineColor(color);
 	}
 
-	void Textbox::setOutlineThickness(const float thickness)
+	void Textbox::setOutlineThickness(float thickness)
 	{
-		this->box.setOutlineThickness(thickness);
+		box.setOutlineThickness(thickness);
 	}
 
-	void Textbox::setTextFillColor(const sf::Color& color)
+	const sf::Color& Textbox::getFillColor() const
 	{
-		this->text.setFillColor(color);
+		return box.getFillColor();
 	}
 
-	void Textbox::setString(const std::string& str)
+	const sf::Color& Textbox::getOutlineColor() const
 	{
-		this->text.setString(str);
+		return box.getOutlineColor();
 	}
 
-	void Textbox::setDefaultString(const std::string& str)
+	float Textbox::getOutlineThickness() const
 	{
-		this->defaultString = str;
+		return box.getOutlineThickness();
 	}
 
-	std::string Textbox::getString() const
+	void Textbox::alignText(const TextAlign& align)
 	{
-		return this->text.getString();
-	}
-
-	std::string Textbox::getDefaultString() const
-	{
-		return this->defaultString;
+		alignment = align;
+		updateText();
 	}
 
 	sf::FloatRect Textbox::getGlobalBounds() const
 	{
-		return this->box.getGlobalBounds();
+		return box.getGlobalBounds();
 	}
 
-	void Textbox::render(sf::RenderTarget& renderTarget)
+	void Textbox::setPosition(float x, float y)
 	{
-		renderTarget.draw(this->box);
-		renderTarget.draw(this->text);
+		box.setPosition(x, y);
+		updateText();
+	}
+
+	void Textbox::setPosition(const sf::Vector2f& position)
+	{
+		box.setPosition(position.x, position.y);
+		updateText();
+	}
+
+	const sf::Vector2f& Textbox::getPosition() const
+	{
+		return box.getPosition();
+	}
+
+	void Textbox::move(float offsetX, float offsetY)
+	{
+		box.move(offsetX, offsetY);
+		text.move(offsetX, offsetY);
+	}
+
+	void Textbox::move(const sf::Vector2f& offset)
+	{
+		box.move(offset);
+		text.move(offset);
+	}
+
+	void Textbox::setString(const std::string& string)
+	{
+		text.setString(string);
+		updateText();
+	}
+
+	const std::string& Textbox::getString() const
+	{
+		return text.getString();
+	}
+
+	void Textbox::setFont(const sf::Font& font)
+	{
+		text.setFont(font);
+	}
+
+	void Textbox::setCharacterSize(unsigned int size)
+	{
+		text.setCharacterSize(size);
+	}
+
+	void Textbox::setLineSpacing(float spacingFactor)
+	{
+		text.setLineSpacing(spacingFactor);
+	}
+
+	void Textbox::setLetterSpacing(float spacingFactor)
+	{
+		text.setLetterSpacing(spacingFactor);
+	}
+
+	const sf::Font* Textbox::getFont() const
+	{
+		return text.getFont();
+	}
+
+	unsigned int Textbox::getCharacterSize() const
+	{
+		return text.getCharacterSize();
+	}
+
+	float Textbox::getLetterSpacing() const
+	{
+		return text.getLetterSpacing();
+	}
+
+	float Textbox::getLineSpacing() const
+	{
+		return text.getLineSpacing();
+	}
+
+	void Textbox::setTextFillColor(const sf::Color& color)
+	{
+		text.setFillColor(color);
+	}
+
+	void Textbox::setTextOutlineColor(const sf::Color& color)
+	{
+		text.setOutlineColor(color);
+	}
+
+	void Textbox::setTextOutlineThickness(float thickness)
+	{
+		text.setOutlineThickness(thickness);
+	}
+
+	const sf::Color& Textbox::getTextFillColor() const
+	{
+		return text.getFillColor();
+	}
+
+	const sf::Color& Textbox::getTextOutlineColor() const
+	{
+		return text.getOutlineColor();
+	}
+
+	float Textbox::getTextOutlineThickness() const
+	{
+		return text.getOutlineThickness();
+	}
+
+	void Textbox::setStyle(sf::Uint32 style)
+	{
+		text.setStyle(style);
+	}
+
+	void Textbox::copyBoxProperties(const sf::RectangleShape& rect)
+	{
+		box.setFillColor(rect.getFillColor());
+		box.setOutlineColor(rect.getOutlineColor());
+		box.setOutlineThickness(rect.getOutlineThickness());
+	}
+
+	void Textbox::copyTextProperties(const sf::Text& text)
+	{
+		this->text.setFillColor(text.getFillColor());
+		this->text.setCharacterSize(text.getCharacterSize());
+		updateText();
+	}
+
+	void Textbox::setText(bool hasText)
+	{
+		this->hasText = hasText;
+	}
+
+	void Textbox::draw(sf::RenderTarget& target)
+	{
+		target.draw(box);
+		if(hasText)target.draw(text);
+	}
+
+	Textbox* Textbox::create(const sf::Vector2f& size)
+	{
+		return new Textbox(size);
 	}
 }

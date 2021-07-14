@@ -1,25 +1,178 @@
 #include "CubeData.hpp"
 #include<fstream>
 #include<sstream>
+#include "GUI.hpp"
+#include "CubeAlgorithm.hpp"
 
-Cube::Cube()
+Cube::Cube(float aspectRatio)
 {
-	insideOut = false;
+	matProj = Matrix4x4::Projection(-0.1, -100, 45, aspectRatio);
 
-	cubeColors = {
-		"ooooooooo",
-		"yyyyyyyyy",
-		"bbbbbbbbb",
-		"wwwwwwwww",
-		"ggggggggg",
-		"rrrrrrrrr"
-	};		
+	filling_colors = false;
 
-	following_moves = false;
+	colorMap = {
+		{'r', sf::Color::Red}, {'b', sf::Color::Blue}, {'g', sf::Color::Green}, {'w', sf::Color::White}, {'y', sf::Color::Yellow}, {'o', sf::Color(255,165,0)}, {'x', sf::Color(126,126,126)}
+	};
 }
 
 Cube::~Cube()
 {
+}
+
+void Cube::setButtons()
+{
+	gui::Button::Group["Save"]->setAction([this]() {
+		saveToFile("data/scramble.txt");
+	});
+
+	gui::Button::Group["Load"]->setAction([this]() {
+		this->create();
+		this->loadFromFile("data/scramble.txt"); 
+		gui::Button::Group["Solve"]->setString("Solve"); 
+	});
+	gui::Button::Group["Solve"]->setAction([this]() {
+		this->following_moves = !this->following_moves;
+		std::string text = this->following_moves ? "Pause" : "Solve";
+		gui::Button::Group["Solve"]->setString(text);
+		if (moves.empty() && following_moves)
+			moves = generateAlgorithm(cubeColors);
+	});
+
+	gui::Button::Group["Reset"]->setAction([this]() {
+		this->create();
+		if (filling_colors)gui::Button::Group["Fill Colors"]->action();
+		gui::Button::Group["Solve"]->setString("Solve");
+	});
+
+	gui::Button::Group["Inside Out"]->setAction([this]() {
+		insideOut = !insideOut;
+	});
+
+	gui::Button::Group["Fill Colors"]->setAction([this]() {
+		filling_colors = !filling_colors;
+
+		if (this->following_moves) {
+			gui::Button::Group["Solve"]->action();
+		}
+
+		if (filling_colors) {
+			std::string cs = "xxxxxxxxx";
+			for (int i = 0; i < 6; i++)cubeColors[i] = cs;
+
+			viewAngles = { 30,45,0 };
+
+			initWorldMatrix(viewAngles);
+
+			insideOut = 0;
+
+			rectanglesToRotateIndices.clear();
+
+			setupCubeFromColors();
+
+			gui::Button::Group["Solve"]->setString("Solve");
+
+			currentColor = 'x';
+
+			sf::Vector2f offset(0, gui::Button::Group["Fill Colors"]->getSize().y + 10);
+			sf::Vector2f size(50, 50);
+			sf::Color c = sf::Color::Red;
+			gui::Button::Group["Red"] = gui::Button::create(size);
+			gui::Button::Group["Red"]->setPosition(gui::Button::Group["Fill Colors"]->getPosition() + offset);
+			gui::Button::Group["Red"]->setFillColor(c);
+			gui::Button::Group["Red"]->setOutlineColor(sf::Color::Transparent);
+			gui::Button::Group["Red"]->setHighlightFillColor(c);
+			gui::Button::Group["Red"]->setHighightOutlineColor(c);
+			gui::Button::Group["Red"]->setHighlightOutlineThickness(5);
+			gui::Button::Group["Red"]->setAction([this]() {currentColor = 'r'; });
+
+			offset.x += 55;
+			c = sf::Color::Yellow;
+			gui::Button::Group["Yellow"] = gui::Button::create(size);
+			gui::Button::Group["Yellow"]->setPosition(gui::Button::Group["Fill Colors"]->getPosition() + offset);
+			gui::Button::Group["Yellow"]->setFillColor(c);
+			gui::Button::Group["Yellow"]->setOutlineColor(sf::Color::Transparent);
+			gui::Button::Group["Yellow"]->setHighlightFillColor(c);
+			gui::Button::Group["Yellow"]->setHighightOutlineColor(c);
+			gui::Button::Group["Yellow"]->setHighlightOutlineThickness(5);
+			gui::Button::Group["Yellow"]->setAction([this]() {currentColor = 'y'; });
+
+			offset.x += 55;
+			c = sf::Color::Green;
+			gui::Button::Group["Green"] = gui::Button::create(size);
+			gui::Button::Group["Green"]->setPosition(gui::Button::Group["Fill Colors"]->getPosition() + offset);
+			gui::Button::Group["Green"]->setFillColor(c);
+			gui::Button::Group["Green"]->setOutlineColor(sf::Color::Transparent);
+			gui::Button::Group["Green"]->setHighlightFillColor(c);
+			gui::Button::Group["Green"]->setHighightOutlineColor(c);
+			gui::Button::Group["Green"]->setHighlightOutlineThickness(5);
+			gui::Button::Group["Green"]->setAction([this]() {currentColor = 'g'; });
+
+			offset.x += 55;
+			c = sf::Color::White;
+			gui::Button::Group["White"] = gui::Button::create(size);
+			gui::Button::Group["White"]->setPosition(gui::Button::Group["Fill Colors"]->getPosition() + offset);
+			gui::Button::Group["White"]->setFillColor(c);
+			gui::Button::Group["White"]->setOutlineColor(sf::Color::Transparent);
+			gui::Button::Group["White"]->setHighlightFillColor(c);
+			gui::Button::Group["White"]->setHighightOutlineColor(c);
+			gui::Button::Group["White"]->setHighlightOutlineThickness(5);
+			gui::Button::Group["White"]->setAction([this]() {currentColor = 'w'; });
+
+			offset.x += 55;
+			c = sf::Color::Blue;
+			gui::Button::Group["Blue"] = gui::Button::create(size);
+			gui::Button::Group["Blue"]->setPosition(gui::Button::Group["Fill Colors"]->getPosition() + offset);
+			gui::Button::Group["Blue"]->setFillColor(c);
+			gui::Button::Group["Blue"]->setOutlineColor(sf::Color::Transparent);
+			gui::Button::Group["Blue"]->setHighlightFillColor(c);
+			gui::Button::Group["Blue"]->setHighightOutlineColor(c);
+			gui::Button::Group["Blue"]->setHighlightOutlineThickness(5);
+			gui::Button::Group["Blue"]->setAction([this]() {currentColor = 'b'; });
+
+			offset.x += 55;
+			c = colorMap['o'];
+			gui::Button::Group["Orange"] = gui::Button::create(size);
+			gui::Button::Group["Orange"]->setPosition(gui::Button::Group["Fill Colors"]->getPosition() + offset);
+			gui::Button::Group["Orange"]->setFillColor(c);
+			gui::Button::Group["Orange"]->setOutlineColor(sf::Color::Transparent);
+			gui::Button::Group["Orange"]->setHighlightFillColor(c);
+			gui::Button::Group["Orange"]->setHighightOutlineColor(c);
+			gui::Button::Group["Orange"]->setHighlightOutlineThickness(5);
+			gui::Button::Group["Orange"]->setAction([this]() {currentColor = 'o'; });
+		}
+		else {
+			delete gui::Button::Group["Red"]; gui::Button::Group.erase("Red");
+			delete gui::Button::Group["Yellow"]; gui::Button::Group.erase("Yellow");
+			delete gui::Button::Group["Green"]; gui::Button::Group.erase("Green");
+			delete gui::Button::Group["White"]; gui::Button::Group.erase("White");
+			delete gui::Button::Group["Blue"]; gui::Button::Group.erase("Blue");
+			delete gui::Button::Group["Orange"]; gui::Button::Group.erase("Orange");
+		}
+	});
+
+	sf::Vector2f barSize = gui::Textbox::Group["Speed"]->getSize();
+	gui::Textbox::Group["SpeedBar"]->setSize({ (logf(rotationSpeed) / logf(90)) * barSize.x, barSize.y });
+	
+	gui::Button::Group["SpeedI"]->setAction([this]() {
+		do {
+			if (rotationSpeed == 90)break;
+			rotationSpeed += 1;
+		} while (90 % rotationSpeed != 0);
+
+		sf::Vector2f barSize = gui::Textbox::Group["Speed"]->getSize();
+		gui::Textbox::Group["SpeedBar"]->setSize({ (logf(rotationSpeed) / logf(90)) * barSize.x, barSize.y });
+
+		});
+	gui::Button::Group["SpeedD"]->setAction([this]() {
+		do {
+			if (rotationSpeed == 1)break;
+			rotationSpeed -= 1;
+		} while (90 % rotationSpeed != 0);
+
+		sf::Vector2f barSize = gui::Textbox::Group["Speed"]->getSize();
+		gui::Textbox::Group["SpeedBar"]->setSize({ (logf(rotationSpeed) / logf(90)) * barSize.x, barSize.y });
+
+		});
 }
 
 void Cube::loadFromFile(const std::string& filename)
@@ -27,25 +180,23 @@ void Cube::loadFromFile(const std::string& filename)
 	std::ifstream file(filename);
 	std::string line;
 
-	while (!file.eof()) {
+	for (int i = 0; i < 6; i++) {
 		getline(file, line);
-		std::stringstream ss;
-		ss << line;
-		ss >> line;
-		if (line == "#scramble") {
-			for (int i = 0; i < 6; i++) {
-				getline(file, line);
-				cubeColors[i] = line;
-			}
-		}
-		else if (line == "#solve") {
-			std::string move;
-			while (move != "#end") {
-				file >> move;
-				moves.push(move);
-			}
-		}
+		cubeColors[i] = line;
 	}
+	file.close();
+
+	setupCubeFromColors();
+}
+
+void Cube::saveToFile(const std::string& filename)
+{
+	std::ofstream file(filename, std::ofstream::trunc);
+
+	for (int i = 0; i < 6; i++) {
+		file << cubeColors[i] << '\n';
+	}
+
 	file.close();
 }
 
@@ -58,17 +209,34 @@ void Cube::initWorldMatrix(const sf::Vector3f& angles)
 		Matrix4x4::Translation(0, 0, -20);
 }
 
-void Cube::create(float aspectRatio)
+void Cube::create()
 {
+	while (!moves.empty())moves.pop();
+
+	insideOut = false;
+
+	rotationSpeed = 5;
+
+	cubeColors = {
+		"ooooooooo",
+		"yyyyyyyyy",
+		"bbbbbbbbb",
+		"wwwwwwwww",
+		"ggggggggg",
+		"rrrrrrrrr"
+	};
+
+	following_moves = false;
+
 	viewAngles = { 30,45,0 };
 
 	initWorldMatrix(viewAngles);
 
-	matProj = Matrix4x4::Projection(-0.1, -100, 45, aspectRatio);
-
-	insideOut = 0;
+	rectanglesToRotateIndices.clear();
 
 	setupCubeFromColors();
+
+	setButtons();
 }
 
 void Cube::setupCubeFromColors()
@@ -108,9 +276,6 @@ void Cube::setupCubeFromColors()
 		{{43,42,47,46}, {42,41,46,45}, {41,40,45,44}, {47,46,51,50}, {46,45,50,49}, {45,44,49,48}, {51,50,55,54}, {50,49,54,53}, {49,48,53,52}}  //back
 	};
 
-	colorMap = {
-		{'r', sf::Color::Red}, {'b', sf::Color::Blue}, {'g', sf::Color::Green}, {'w', sf::Color::White}, {'y', sf::Color::Yellow}, {'o', sf::Color(255,165,0)}
-	};
 
 	for (int i = 0; i < 6; i++) {
 		for (int j = 0; j < 9; j++) {
@@ -148,11 +313,11 @@ void Cube::rotateSidesClockwise(std::vector<int>& v, int n)
 	std::string temp;
 
 	for (int i = 0; i < 12; i++) {
-		temp.push_back(cubeColors[v[i] / 10][v[i] % 10]);
+		temp.push_back(cubeColors[v[(i/3) * 4]][v[i + i / 3 + 1]]);
 	}
 
 	for (int i = 0; i < 12; i++) {
-		cubeColors[v[i] / 10][v[i] % 10] = temp[(i + 12 - 3 * n) % 12];
+		cubeColors[v[(i / 3) * 4]][v[i + i / 3 + 1]] = temp[(i + 12 - 3 * n) % 12];
 	}
 }
 
@@ -168,7 +333,9 @@ void Cube::setupForRotation(int face, std::vector<int>& v, int n, int dir, int a
 	}
 
 	rotateSidesClockwise(v, n % 4);
-	rectanglesToRotateIndices.insert(rectanglesToRotateIndices.end(), v.begin(), v.end());
+	for (int i = 0; i < 12; i++) {
+		rectanglesToRotateIndices.push_back(v[(i/3) * 4] * 10 + v[i + i/3 + 1]);
+	}
 
 	rotationSettings.dir = dir;
 	if (n == 3) {
@@ -176,7 +343,7 @@ void Cube::setupForRotation(int face, std::vector<int>& v, int n, int dir, int a
 		n = 1;
 	}
 
-	rotationSettings.setup(5, 90 * n * rotationSettings.dir);
+	rotationSettings.setup(rotationSpeed, 90 * n * rotationSettings.dir);
 
 	switch (axis) {
 	case 0: rotationSettings.var = &rotationSettings.angles.x; break;
@@ -223,10 +390,10 @@ void Cube::setupForRotation(int face, std::vector<int>& v, int n, int dir, int a
 void Cube::f(int n)
 {
 	std::vector<int> v = {
-		16, 17, 18,
-		20, 23, 26,
-		32, 31, 30,
-		48, 45, 42
+		UP,    6, 7, 8, 
+		RIGHT, 0, 3, 6,
+		DOWN,  2, 1, 0,
+		LEFT,  8, 5, 2
 	};
 
 	setupForRotation(FRONT, v, n, -1, 2);
@@ -235,10 +402,10 @@ void Cube::f(int n)
 void Cube::u(int n)
 {
 	std::vector<int> v = {
-		22, 21, 20,
-		 2,  1,  0,
-		42, 41, 40,
-		52, 51, 50
+		RIGHT, 2, 1, 0,
+		FRONT, 2, 1, 0,
+		LEFT,  2, 1, 0,
+		BACK,  2, 1, 0
 	};
 
 	setupForRotation(UP, v, n, 1, 1);
@@ -247,10 +414,10 @@ void Cube::u(int n)
 void Cube::r(int n)
 {
 	std::vector<int> v = {
-		38, 35, 32,
-		 8,  5,  2,
-		18, 15, 12,
-		50, 53, 56
+		DOWN,  8, 5, 2,
+		FRONT, 8, 5, 2,
+		UP,    8, 5, 2,
+		BACK,  0, 3, 6
 	};
 
 	setupForRotation(RIGHT, v, n, -1, 0);
@@ -259,10 +426,10 @@ void Cube::r(int n)
 void Cube::d(int n)
 {
 	std::vector<int> v = {
-		26, 27, 28,
-		56, 57, 58,
-		46, 47, 48,
-		 6,  7,  8
+		RIGHT, 6, 7, 8,
+		BACK,  6, 7, 8,
+		LEFT,  6, 7, 8,
+		FRONT, 6, 7, 8
 	};
 
 	setupForRotation(DOWN, v, n, -1, 1);
@@ -271,10 +438,10 @@ void Cube::d(int n)
 void Cube::l(int n)
 {
 	std::vector<int> v = {
-		10, 13, 16,
-		 0,  3,  6,
-		30, 33, 36,
-		58, 55, 52
+		UP,    0, 3, 6,
+		FRONT, 0, 3, 6,
+		DOWN,  0, 3, 6,
+		BACK,  8, 5, 2
 	};
 
 	setupForRotation(LEFT, v, n, 1, 0);
@@ -283,10 +450,10 @@ void Cube::l(int n)
 void Cube::b(int n)
 {
 	std::vector<int> v = {
-		36, 37, 38,
-		28, 25, 22,
-		12, 11, 10,
-		40, 43, 46
+		DOWN,  6, 7, 8,
+		RIGHT, 8, 5, 2,
+		UP,    2, 1, 0,
+		LEFT,  0, 3, 6
 	};
 
 	setupForRotation(BACK, v, n, 1, 2);
@@ -295,10 +462,10 @@ void Cube::b(int n)
 void Cube::m(int n)
 {
 	std::vector<int> v = {
-		 7,  4,  1,
-		17, 14, 11,
-		57, 54, 51,
-		37, 34, 31
+		FRONT, 7, 4, 1,
+		UP,    7, 4, 1,
+		BACK,  1, 4, 7,
+		DOWN,  7, 4, 1
 	};
 
 	setupForRotation(-1, v, n, -1, 0);
@@ -307,10 +474,10 @@ void Cube::m(int n)
 void Cube::s(int n)
 {
 	std::vector<int> v = {
-		 5,  4,  3,
-		45, 44, 43,
-		55, 54, 53,
-		25, 24, 23
+		FRONT, 5, 4, 3,
+		LEFT,  5, 4, 3,
+		BACK,  5, 4, 3,
+		RIGHT, 5, 4, 3
 	};
 
 	setupForRotation(-1, v, n, 1, 1);
@@ -319,10 +486,10 @@ void Cube::s(int n)
 void Cube::e(int n)
 {
 	std::vector<int> v = {
-		21, 24, 27,
-		35, 34, 33,
-		47, 44, 41,
-		13, 14, 15
+		RIGHT, 1, 4, 7,
+		DOWN,  5, 4, 3,
+		LEFT,  7, 4, 1,
+		UP,    3, 4, 5
 	};
 
 	setupForRotation(-1, v, n, -1, 2);
@@ -350,12 +517,6 @@ void Cube::turn_down()
 
 bool Cube::handleKeyEvent(sf::Keyboard::Key key)
 {
-	if (key == sf::Keyboard::Q) {
-		loadFromFile("data/scramble.txt");
-		setupCubeFromColors();
-		return true;
-	}
-
 	if (!viewSettings.animating && (key >= sf::Keyboard::Numpad4 && key <= sf::Keyboard::Numpad6)) {
 		if (key == sf::Keyboard::Numpad4) viewSettings.dir = 1;
 		else if (key == sf::Keyboard::Numpad6) viewSettings.dir = -1;
@@ -377,8 +538,8 @@ bool Cube::handleKeyEvent(sf::Keyboard::Key key)
 	}
 
 	if (viewSettings.var != &viewAngles.y && (key == sf::Keyboard::Numpad8 || key == sf::Keyboard::Numpad2)){
-		if (key == sf::Keyboard::Numpad2) viewSettings.dir = -1;
-		else if (key == sf::Keyboard::Numpad8) viewSettings.dir = 1;
+		if (key == sf::Keyboard::Numpad8) viewSettings.dir = -1;
+		else if (key == sf::Keyboard::Numpad2) viewSettings.dir = 1;
 
 		viewSettings.setup(5, 30 * viewSettings.dir, &viewAngles.x);
 
@@ -387,15 +548,6 @@ bool Cube::handleKeyEvent(sf::Keyboard::Key key)
 			initWorldMatrix(viewAngles);
 		};
 
-		return true;
-	}
-
-	if (key == sf::Keyboard::Enter) {
-		following_moves = !following_moves;
-		return true;
-	}
-	if (key == sf::Keyboard::I) {
-		insideOut = !insideOut;
 		return true;
 	}
 	
@@ -430,11 +582,7 @@ void Cube::update()
 		std::string move = moves.front();
 		moves.pop();
 
-		int n = 1;
-		if (move.size() == 2) {
-			if (move[1] == '!')n = 3;
-			else if (move[1] == '2')n = 2;
-		}
+		int n = move[1] - '0';
 
 		switch (move[0]) {
 		case 'r': r(n); break;
@@ -446,9 +594,11 @@ void Cube::update()
 		case 's': s(n); break;
 		case 'm': m(n); break;
 		case 'e': e(n); break;
+		case 'y': if (n == 1)turn_left(); else if (n == 2) { turn_left(); turn_left(); } else turn_right(); break;
+		case 'x': if (n == 1)turn_up(); else if (n == 2) { turn_up(); turn_up(); } else turn_down(); break;
 		}
 	}
-
+	
 	if (rotationSettings.animating)rotationSettings.animate();
 
 	if (viewSettings.animating)viewSettings.animate();
@@ -456,16 +606,16 @@ void Cube::update()
 
 void Cube::render(sf::RenderWindow& window)
 {
-	std::vector<Rectangle> rectanglesToRaster;
+	std::vector<Quad> rectanglesToRaster;
 
-	for (auto& rect : mesh)
+	for (int i = 0; i < mesh.size(); i++)
 	{
-		Rectangle rectTransformed = matWorld * rect;
+		Quad rectTransformed = matWorld * mesh[i];
 
 		Vector normal = unit(cross(rectTransformed[1] - rectTransformed[0], rectTransformed[2] - rectTransformed[0]));
 
 		if ((insideOut ? -1 : 1) * dot(normal, rectTransformed[0]) < 0.0f) {
-			Rectangle rectProjected;
+			Quad rectProjected;
 
 			rectProjected = matProj * rectTransformed;
 
@@ -481,16 +631,25 @@ void Cube::render(sf::RenderWindow& window)
 			for(int j = 0; j < 4; j++)
 				offsetPoint(rectProjected[j]);
 
-			rectProjected.color = sf::Color(rect.color.r, rect.color.g, rect.color.b);
+			rectProjected.color = sf::Color(mesh[i].color.r, mesh[i].color.g, mesh[i].color.b);
+
+			if (filling_colors) {
+				if (rectProjected.contains(window.mapPixelToCoords(sf::Mouse::getPosition(window)))) {
+					rectProjected.color = colorMap[currentColor] - sf::Color(0, 0, 0, 70);
+					if (sf::Mouse::isButtonPressed(sf::Mouse::Left)) {
+						cubeColors[i / 9][i % 9] = currentColor;
+						mesh[i].color = colorMap[cubeColors[i / 9][i % 9]];
+					}
+				}
+			}
 
 			rectanglesToRaster.push_back(rectProjected);
 		}
 	}
 
-	sort(rectanglesToRaster.begin(), rectanglesToRaster.end(), [](Rectangle& a, Rectangle& b) {
+	sort(rectanglesToRaster.begin(), rectanglesToRaster.end(), [](Quad& a, Quad& b) {
 		return (a[0].z + a[1].z + a[2].z + a[3].z) / 4.0f < (b[0].z + b[1].z + b[2].z + b[3].z) / 4.0f;
 		});
-
 
 	sf::ConvexShape shape;
 	shape.setOutlineColor(sf::Color::Black);

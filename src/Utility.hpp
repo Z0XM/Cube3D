@@ -17,7 +17,7 @@ struct Triangle {
 	}
 };
 
-struct Rectangle {
+struct Quad {
 	Vector vertex[4];
 	sf::Color color = sf::Color::White;
 
@@ -27,6 +27,8 @@ struct Rectangle {
 	Vector operator[](int i) const {
 		return vertex[i];
 	}
+
+	bool contains(const sf::Vector2f& pos);
 };
 
 struct Matrix4x4 {
@@ -46,5 +48,5 @@ Matrix4x4 operator+(const Matrix4x4& a, const Matrix4x4& b);
 
 Vector operator*(const Matrix4x4& mat, const Vector& u);
 Triangle operator*(const Matrix4x4& mat, const Triangle& t);
-Rectangle operator*(const Matrix4x4& mat, const Rectangle& r);
+Quad operator*(const Matrix4x4& mat, const Quad& r);
 Matrix4x4 operator*(const Matrix4x4& a, const Matrix4x4& b);

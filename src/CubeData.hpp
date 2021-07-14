@@ -11,9 +11,12 @@
 
 class Cube {
 	bool insideOut;
+	bool filling_colors;
+	int rotationSpeed;
+	char currentColor;
 
 	Matrix4x4 matProj, matWorld;
-	std::vector<Rectangle> mesh;
+	std::vector<Quad> mesh;
 	std::vector<int> rectanglesToRotateIndices;
 
 	std::unordered_map<char, sf::Color> colorMap;
@@ -26,7 +29,6 @@ class Cube {
 	std::queue<std::string> moves;
 
 	void initWorldMatrix(const sf::Vector3f& angles);
-	void loadFromFile(const std::string& filename);
 	void setupCubeFromColors();
 	void loadColorsInCube();
 	void setupForRotation(int face, std::vector<int>& v, int n, int dir, int axis);
@@ -37,10 +39,13 @@ public:
 		FRONT, UP, RIGHT, DOWN, LEFT, BACK
 	};
 
-	Cube();
+	Cube(float aspectRatio);
 	~Cube();
 
-	void create(float aspectRatio);
+	void setButtons();
+	void create();
+	void loadFromFile(const std::string& filename);
+	void saveToFile(const std::string& filename);
 
 	bool handleKeyEvent(sf::Keyboard::Key key);
 	void update();
