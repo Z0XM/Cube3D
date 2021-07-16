@@ -1,6 +1,7 @@
 #include "CubeData.hpp"
 #include<fstream>
 #include<sstream>
+#include<iostream>
 #include "GUI.hpp"
 #include "CubeAlgorithm.hpp"
 
@@ -21,6 +22,8 @@ Cube::~Cube()
 
 void Cube::setButtons()
 {
+	gui::Textbox::Group["CurMove"]->setString("");
+
 	gui::Button::Group["Save"]->setAction([this]() {
 		saveToFile("data/scramble.txt");
 	});
@@ -34,8 +37,16 @@ void Cube::setButtons()
 		this->following_moves = !this->following_moves;
 		std::string text = this->following_moves ? "Pause" : "Solve";
 		gui::Button::Group["Solve"]->setString(text);
-		if (moves.empty() && following_moves)
-			moves = generateAlgorithm(cubeColors);
+		if (moves.empty() && following_moves) {
+			auto algo = generateAlgorithm(cubeColors);
+			for (auto& s : algo) {
+				std::cout << s << ' ';
+				moves.push(s);
+			}
+			std::cout << std::endl << std::endl;
+		}
+
+		if(!following_moves)gui::Textbox::Group["CurMove"]->setString("");
 	});
 
 	gui::Button::Group["Reset"]->setAction([this]() {
@@ -597,6 +608,15 @@ void Cube::update()
 		case 'y': if (n == 1)turn_left(); else if (n == 2) { turn_left(); turn_left(); } else turn_right(); break;
 		case 'x': if (n == 1)turn_up(); else if (n == 2) { turn_up(); turn_up(); } else turn_down(); break;
 		}
+
+		if (move[1] == '1')move = move[0];
+		else if (move[1] == '3')move[1] = '\'';
+		move[0] = std::toupper(move[0]);
+		gui::Textbox::Group["CurMove"]->setString(move);
+	}
+	else if(!rotationSettings.animating && following_moves && moves.empty())
+	{
+		gui::Button::Group["Solve"]->action();
 	}
 	
 	if (rotationSettings.animating)rotationSettings.animate();

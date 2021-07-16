@@ -107,6 +107,15 @@ void CubeRenderer::initButtons()
 	gui::Textbox::Group["Credit"]->setFont(subFont);
 	gui::Textbox::Group["Credit"]->setCharacterSize(28);
 	gui::Textbox::Group["Credit"]->setString("Mukul Singh");
+
+	gui::Textbox::Group["CurMove"] = gui::Textbox::create({ 40, 40 });
+	gui::Textbox::Group["CurMove"]->setPosition(750, 200);
+	gui::Textbox::Group["CurMove"]->setTextFillColor(sf::Color::Yellow);
+	gui::Textbox::Group["CurMove"]->setFillColor(sf::Color::Transparent);
+	gui::Textbox::Group["CurMove"]->setFont(subFont);
+	gui::Textbox::Group["CurMove"]->setCharacterSize(56);
+	gui::Textbox::Group["CurMove"]->setString("");
+
 }
 
 CubeRenderer::CubeRenderer()

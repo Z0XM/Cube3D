@@ -40,7 +40,7 @@ void oll();
 void corner_pll();
 void edge_pll();
 
-queue<string> generateAlgorithm(vector<string> cc)
+vector<string> generateAlgorithm(vector<string> cc)
 {
 	for (index = 0; index < 6; index++) {
 		moves[index].clear();
@@ -112,11 +112,7 @@ queue<string> generateAlgorithm(vector<string> cc)
 		if (moves[i].size() < moves[min].size())min = i;
 	}
 
-	queue<string> algo;
-	for (int i = 0; i < moves[min].size(); i++) {
-		algo.push(moves[min][i]);
-	}
-	return algo;
+	return moves[min];
 }
 
 void cross()
